@@ -415,13 +415,13 @@ ggplot(glucose_summary, aes(x = time * 24, y = mean, color = cluster, fill = clu
   theme(plot.title = element_text(hjust = 0.5, face = "bold"),
         panel.border = element_rect(color = "black", fill = NA, linewidth = 0.5))
 # Saving the plot as an image file
-ggsave(filename = "C:/Users/andre/OneDrive/Desktop/Proj2/Plots/9. Curves-Cluster.png", 
+ggsave(filename = "C:/Users/andre/OneDrive/Desktop/FTDA/Plots/9. Curves-Cluster.png", 
        plot = last_plot(), width = 10, height = 6, dpi = 300)
 
 # --- FUNCTIONAL BOXPLOT WITH MBD AND BD2 ---
 
 # Save side-by-side functional boxplots as high-resolution PNG
-png(filename = "C:/Users/andre/OneDrive/Desktop/FTDA/Plots/9. FunctionalBoxplots.png",
+png(filename = "C:/Users/andre/OneDrive/Desktop/FTDA/Plots/10. FunctionalBoxplots.png",
     width = 1200, height = 600, res = 150)
 
 # Set 1 row, 2 columns layout and consistent style
@@ -478,7 +478,7 @@ mbd_sample <- MBD(fd_sample)$MBD
 mbd_vec <- (mbd_sample - min(mbd_sample)) / (max(mbd_sample) - min(mbd_sample))  # normalize
 
 # Save histogram as PNG
-png(filename = "C:/Users/andre/OneDrive/Desktop/FTDA/Plots/10. Histogram_mbd_sample.png",
+png(filename = "C:/Users/andre/OneDrive/Desktop/FTDA/Plots/11. Histogram_mbd_sample.png",
     width = 1000, height = 600, res = 150)
 
 # Set consistent graphical parameters
@@ -690,7 +690,7 @@ ggplot(beta1_df, aes(x = time, y = beta)) +
     panel.border = element_rect(color = "black", fill = NA, linewidth = 0.5)
   )
 
-ggsave("C:/Users/andre/OneDrive/Desktop/FTDA/Plots/11. Beta1_only_curve.png", 
+ggsave("C:/Users/andre/OneDrive/Desktop/FTDA/Plots/12. Beta1_only_curve.png", 
        width = 10, height = 6, dpi = 300)
 
 # --- MODEL 2: Scalar-on-function REGRESSION – Curve + n_boli + fear ---
@@ -748,7 +748,7 @@ ggplot(beta2_df, aes(x = time, y = beta)) +
     panel.border = element_rect(color = "black", fill = NA, linewidth = 0.5)
   )
 
-ggsave("C:/Users/andre/OneDrive/Desktop/FTDA/Plots/12. Beta1_with_covariates.png", 
+ggsave("C:/Users/andre/OneDrive/Desktop/FTDA/Plots/13. Beta1_with_covariates.png", 
        width = 10, height = 6, dpi = 300)
 
 # --- MODEL 3: Function-on-scalar REGRESSION – Curve ~ n_boli + fear ---
@@ -811,7 +811,7 @@ ggplot(beta_fos_df, aes(x = time)) +
     panel.border = element_rect(color = "black", fill = NA, linewidth = 0.5)
   )
 
-ggsave("C:/Users/andre/OneDrive/Desktop/FTDA/Plots/13. Function_on_scalar.png", 
+ggsave("C:/Users/andre/OneDrive/Desktop/FTDA/Plots/14. Function_on_scalar.png", 
        width = 10, height = 6, dpi = 300)
 
 # FANOVA
@@ -862,7 +862,7 @@ ggplot(fanova_df_cluster, aes(x = time, y = F_stat)) +
   theme(plot.title = element_text(hjust = 0.5, face = "bold"),
         panel.border = element_rect(color = "black", fill = NA, linewidth = 0.5))
 
-ggsave("C:/Users/andre/OneDrive/Desktop/FTDA/Plots/14. Fanova.png", 
+ggsave("C:/Users/andre/OneDrive/Desktop/FTDA/Plots/15. Fanova.png", 
        width = 10, height = 6, dpi = 300)
 
 # 
@@ -896,7 +896,7 @@ ggplot(fanova_df_hba1c, aes(x = time, y = F_stat)) +
   theme(plot.title = element_text(hjust = 0.5, face = "bold"),
         panel.border = element_rect(color = "black", fill = NA, linewidth = 0.5))
 
-ggsave("C:/Users/andre/OneDrive/Desktop/FTDA/Plots/15. Fanova2.png", 
+ggsave("C:/Users/andre/OneDrive/Desktop/FTDA/Plots/16. Fanova2.png", 
        width = 10, height = 6, dpi = 300)
 
 # --- CROSS-VALIDATION (10-fold) ON A SUBSAMPLE ---
@@ -958,7 +958,7 @@ Diag_high <- alphaShapeDiag(curve_high, library = "GUDHI")
 Diag_low  <- alphaShapeDiag(curve_low,  library = "GUDHI")
 
 # Save side-by-side persistence diagrams
-png(filename = "C:/Users/andre/OneDrive/Desktop/FTDA/Plots/16. Persistence_Diagrams.png",
+png(filename = "C:/Users/andre/OneDrive/Desktop/FTDA/Plots/17. Persistence_Diagrams.png",
     width = 1200, height = 600, res = 150)
 
 # Set graphical parameters
