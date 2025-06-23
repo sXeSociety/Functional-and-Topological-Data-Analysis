@@ -896,7 +896,7 @@ ggplot(fanova_df_hba1c, aes(x = time, y = F_stat)) +
   theme(plot.title = element_text(hjust = 0.5, face = "bold"),
         panel.border = element_rect(color = "black", fill = NA, linewidth = 0.5))
 
-ggsave("C:/Users/andre/OneDrive/Desktop/FTDA/Plots/13. Fanova2.png", 
+ggsave("C:/Users/andre/OneDrive/Desktop/FTDA/Plots/15. Fanova2.png", 
        width = 10, height = 6, dpi = 300)
 
 # --- CROSS-VALIDATION (10-fold) ON A SUBSAMPLE ---
@@ -958,7 +958,7 @@ Diag_high <- alphaShapeDiag(curve_high, library = "GUDHI")
 Diag_low  <- alphaShapeDiag(curve_low,  library = "GUDHI")
 
 # Save side-by-side persistence diagrams
-png(filename = "C:/Users/andre/OneDrive/Desktop/FTDA/Plots/14. Persistence_Diagrams.png",
+png(filename = "C:/Users/andre/OneDrive/Desktop/FTDA/Plots/16. Persistence_Diagrams.png",
     width = 1200, height = 600, res = 150)
 
 # Set graphical parameters
