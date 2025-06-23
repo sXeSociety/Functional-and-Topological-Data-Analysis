@@ -17,7 +17,7 @@ This repository contains the full R code, plots, and saved objects for my experi
 The CGM datasets and related clinical tables used in this project are not included in this repository due to GitHub size limitations.  
 They can be obtained from:
 
-- [Awesome-CGM Aleppo (2017) dataset]([https://github.com/ghoshan/Awesome-CGM](https://github.com/IrinaStatsLab/Awesome-CGM/wiki/Aleppo-(2017)))
+- [Awesome-CGM Aleppo (2017) dataset](https://github.com/IrinaStatsLab/Awesome-CGM/wiki/Aleppo-(2017))
 
 ## Author
 Andrea Corradini  
