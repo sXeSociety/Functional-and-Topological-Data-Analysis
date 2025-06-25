@@ -466,28 +466,25 @@ dev.off()
 
 # Evaluate smoothed functional data on [0,1] grid (already defined earlier)
 fd_matrix <- t(eval.fd(normalized_time, smoothed_fd))  # rows = curves
+n_curves <- nrow(fd_matrix)
 
-# Random sample of 500 curves for depth analysis
-set.seed(42)
-sample_size <- 500
-sample_idx <- sample(1:nrow(fd_matrix), sample_size)
-fd_sample <- fd_matrix[sample_idx, ]
-
-# Compute MBD on sampled curves
-mbd_sample <- MBD(fd_sample)$MBD
-mbd_vec <- (mbd_sample - min(mbd_sample)) / (max(mbd_sample) - min(mbd_sample))  # normalize
+# Compute MBD on all curves
+#mbd_all <- MBD(fd_matrix)$MBD
+#saveRDS(mbd_all, file = "C:/Users/andre/OneDrive/Desktop/FTDA/Objects/mbd_all.rds")
+mbd_all <- readRDS("C:/Users/andre/OneDrive/Desktop/FTDA/Objects/mbd_all.rds")
+mbd_vec <- (mbd_all - min(mbd_all)) / (max(mbd_all) - min(mbd_all))  # normalize
 
 # Save histogram as PNG
-png(filename = "C:/Users/andre/OneDrive/Desktop/FTDA/Plots/11. Histogram_mbd_sample.png",
+png(filename = "C:/Users/andre/OneDrive/Desktop/FTDA/Plots/11. Histogram_mbd_all.png",
     width = 1000, height = 600, res = 150)
 
 # Set consistent graphical parameters
 par(mar = c(5, 5, 4, 2),            # margins: bottom, left, top, right
-    cex.main = 1,                 # title size
-    cex.lab = 0.7,                    # axis labels
-    cex.axis = 0.55,                 # axis ticks
+    cex.main = 1,                   # title size
+    cex.lab = 0.7,                  # axis labels
+    cex.axis = 0.55,                # axis ticks
     mgp = c(1, 0.2, 0),             # label positioning
-    las = 0.8)                        # horizontal y-axis
+    las = 0.8)                      # horizontal y-axis
 
 # Draw histogram
 hist(mbd_vec,
@@ -500,63 +497,74 @@ hist(mbd_vec,
      xaxt = "n")                   
 axis(1, lwd = 0.5, cex.axis = 0.55)
 box(lwd = 0.5) 
-# Add title closer to plot
 title(main = "Histogram – Modified Band Depth (MBD)", line = 1)
 
 # Close device
 dev.off()
 
-# --- WILCOXON TEST: MBD VS HbA1c GROUPS ---
+# --- WILCOXON / KRUSKAL-WALLIS TEST: MBD VS MULTI HbA1c GROUPS ---
 
-# Extract curve IDs and corresponding PtIDs
-curve_ids_sample <- curves_df$curve_id[sample_idx]
-ptid_sample <- sapply(strsplit(curve_ids_sample, "_"), `[`, 1)
+# Use curve IDs corresponding to partial matrix
+curve_ids_all <- curves_df_partial$curve_id
+if (length(curve_ids_all) != n_curves) {
+  stop("Number of curve IDs does not match number of curves in fd_matrix")
+}
+ptid_all <- sapply(strsplit(curve_ids_all, "_"), `[`, 1)
 
-# Get HbA1c values by patient
+# Map HbA1c values to PtIDs
 hb_values <- HbA1c %>%
   group_by(PtID) %>%
   summarise(HbA1c = mean(HbA1cTestRes, na.rm = TRUE)) %>%
   deframe()
 
-# Assign HbA1c to each sampled curve
-hb_sample <- hb_values[ptid_sample]
-group_labels <- ifelse(hb_sample > 8, "high_HbA1c",
-                       ifelse(!is.na(hb_sample), "low_HbA1c", NA))
+hb_all <- hb_values[ptid_all]
 
-# Filter valid observations
-valid_idx <- which(!is.na(group_labels) & !is.na(mbd_vec))
+# Define HbA1c group categories
+group_labels_all <- cut(
+  hb_all,
+  breaks = c(-Inf, 6.5, 7.5, 8.5, Inf),
+  labels = c("≤6.5", "(6.5,7.5]", "(7.5,8.5]", ">8.5"),
+  right = TRUE
+)
+
+# Filter valid data
+valid_idx <- which(!is.na(group_labels_all) & !is.na(mbd_vec))
+group_valid <- group_labels_all[valid_idx]
 depth_valid <- mbd_vec[valid_idx]
-group_valid <- group_labels[valid_idx]
 
-# Wilcoxon rank-sum test: high vs low HbA1c
-test_result <- wilcox.test(depth_valid[group_valid == "high_HbA1c"],
-                           depth_valid[group_valid == "low_HbA1c"])
+# Kruskal-Wallis test
+kruskal_result <- kruskal.test(depth_valid ~ group_valid)
+cat("Kruskal-Wallis Test (MBD vs HbA1c groups):\n")
+print(kruskal_result)
 
-cat("Wilcoxon Rank-Sum Test:\n")
-print(test_result)
+# Pairwise Wilcoxon tests
+pairwise_result <- pairwise.wilcox.test(depth_valid, group_valid, p.adjust.method = "BH")
+cat("\nPairwise Wilcoxon Tests (BH corrected):\n")
+print(pairwise_result)
 
-# --- WILCOXON AND KRUSKAL-WALLIS ON CLUSTERS ---
+# Create the data frame for plotting
+df_plot <- data.frame(
+  MBD = depth_valid,
+  HbA1cGroup = group_valid
+)
 
-# Match sampled curve IDs to cluster assignments
-cluster_labels <- scores_clustered$cluster[match(curve_ids_sample, scores_clustered$curve_id)]
+ggplot(df_plot, aes(x = HbA1cGroup, y = MBD, fill = HbA1cGroup)) +
+  geom_violin(trim = FALSE, alpha = 0.5, color = "black") +
+  geom_boxplot(width = 0.1, outlier.shape = NA, color = "black", fill = "white") +
+  labs(title = "MBD by HbA1c Group",
+       x = "HbA1c Group",
+       y = "Normalized MBD") +
+  theme_minimal(base_size = 12) +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold"),
+    axis.title = element_text(face = "plain"),
+    axis.text = element_text(size = 9),
+    legend.position = "none",
+    panel.border = element_rect(color = "black", fill = NA, linewidth = 0.5)
+  )
 
-# Filter valid entries
-valid_idx_cluster <- which(!is.na(cluster_labels) & !is.na(mbd_vec))
-depth_cluster <- mbd_vec[valid_idx_cluster]
-cluster_group <- as.character(cluster_labels[valid_idx_cluster])
-
-# Wilcoxon test between two clusters (1 vs 2)
-wilcox_cluster_test <- wilcox.test(depth_cluster[cluster_group == "1"],
-                                   depth_cluster[cluster_group == "2"])
-
-cat("Wilcoxon Rank-Sum Test (Cluster 1 vs Cluster 2):\n")
-print(wilcox_cluster_test)
-
-# Kruskal-Wallis test across all clusters
-kruskal_cluster_test <- kruskal.test(depth_cluster ~ as.factor(cluster_group))
-
-cat("Kruskal-Wallis Test across Clusters:\n")
-print(kruskal_cluster_test)
+ggsave("C:/Users/andre/OneDrive/Desktop/FTDA/Plots/12. MBD_violin_boxplot.png",
+       width = 10, height = 6, dpi = 300)
 
 # ----- REGRESSION -----
 
@@ -690,7 +698,7 @@ ggplot(beta1_df, aes(x = time, y = beta)) +
     panel.border = element_rect(color = "black", fill = NA, linewidth = 0.5)
   )
 
-ggsave("C:/Users/andre/OneDrive/Desktop/FTDA/Plots/12. Beta1_only_curve.png", 
+ggsave("C:/Users/andre/OneDrive/Desktop/FTDA/Plots/13. Beta1_only_curve.png", 
        width = 10, height = 6, dpi = 300)
 
 # --- MODEL 2: Scalar-on-function REGRESSION – Curve + n_boli + fear ---
@@ -748,7 +756,7 @@ ggplot(beta2_df, aes(x = time, y = beta)) +
     panel.border = element_rect(color = "black", fill = NA, linewidth = 0.5)
   )
 
-ggsave("C:/Users/andre/OneDrive/Desktop/FTDA/Plots/13. Beta1_with_covariates.png", 
+ggsave("C:/Users/andre/OneDrive/Desktop/FTDA/Plots/14. Beta1_with_covariates.png", 
        width = 10, height = 6, dpi = 300)
 
 # --- MODEL 3: Function-on-scalar REGRESSION – Curve ~ n_boli + fear ---
@@ -811,7 +819,7 @@ ggplot(beta_fos_df, aes(x = time)) +
     panel.border = element_rect(color = "black", fill = NA, linewidth = 0.5)
   )
 
-ggsave("C:/Users/andre/OneDrive/Desktop/FTDA/Plots/14. Function_on_scalar.png", 
+ggsave("C:/Users/andre/OneDrive/Desktop/FTDA/Plots/15. Function_on_scalar.png", 
        width = 10, height = 6, dpi = 300)
 
 # FANOVA
@@ -862,41 +870,46 @@ ggplot(fanova_df_cluster, aes(x = time, y = F_stat)) +
   theme(plot.title = element_text(hjust = 0.5, face = "bold"),
         panel.border = element_rect(color = "black", fill = NA, linewidth = 0.5))
 
-ggsave("C:/Users/andre/OneDrive/Desktop/FTDA/Plots/15. Fanova.png", 
+ggsave("C:/Users/andre/OneDrive/Desktop/FTDA/Plots/16. Fanova.png", 
        width = 10, height = 6, dpi = 300)
 
-# 
-# --- FANOVA by HbA1c group ---
+# --- FANOVA by HbA1c multi-category ---
 
-# Create binary factor for HbA1c: high if ≥ 8
-hba1c_factor <- as.factor(ifelse(metadata_fd$HbA1cTestRes >= 8, "high", "low"))
+# Create multi-category factor for HbA1c
+hba1c_factor_multi2 <- cut(
+  metadata_fd$HbA1cTestRes,
+  breaks = c(-Inf, 6.5, 7.5, 8.5, Inf),
+  labels = c("≤6.5", "(6.5,7.5]", "(7.5,8.5]", ">8.5")
+)
+
 # Run FANOVA
-#fanova_hba1c <- fanova.onefactor(fdata_obj, group = hba1c_factor)
-#saveRDS(fanova_hba1c, file = "C:/Users/andre/OneDrive/Desktop/FTDA/Objects/fanova_hba1c.rds")
-fanova_hba1c <- readRDS("C:/Users/andre/OneDrive/Desktop/FTDA/Objects/fanova_hba1c.rds")
+#fanova_hba1c_multi2 <- fanova.onefactor(fdata_obj, group = hba1c_factor_multi2)
+#saveRDS(fanova_hba1c_multi2, file = "C:/Users/andre/OneDrive/Desktop/FTDA/Objects/fanova_hba1c_multi2.rds")
+fanova_hba1c_multi2 <- readRDS("C:/Users/andre/OneDrive/Desktop/FTDA/Objects/fanova_hba1c_multi2.rds")
 
 # Extract F-statistics and threshold
-f_stat_hba1c <- fanova_hba1c$wm
-threshold_hba1c <- quantile(f_stat_hba1c, 0.95)
+f_stat_hba1c_multi2 <- fanova_hba1c_multi2$wm
+threshold_hba1c_multi2 <- quantile(f_stat_hba1c_multi2, 0.95)
 
 # Prepare data for plotting
-fanova_df_hba1c <- data.frame(
+fanova_df_hba1c_multi2 <- data.frame(
   time = time_hours,
-  F_stat = f_stat_hba1c)
+  F_stat = f_stat_hba1c_multi2
+)
 
-# Plot F-statistic curve (HbA1c groups)
-ggplot(fanova_df_hba1c, aes(x = time, y = F_stat)) +
+# Plot F-statistic curve (HbA1c multi-group)
+ggplot(fanova_df_hba1c_multi2, aes(x = time, y = F_stat)) +
   geom_line(color = "steelblue", linewidth = 1.1) +
-  geom_hline(yintercept = threshold_hba1c, linetype = "dashed", color = "darkred") +
+  geom_hline(yintercept = threshold_hba1c_multi2, linetype = "dashed", color = "darkred") +
   scale_x_continuous(breaks = seq(0, 24, by = 6),
                      labels = c("00:00", "06:00", "12:00", "18:00", "24:00")) +
-  labs(title = "FANOVA – Glucose Curves by HbA1c Group",
+  labs(title = "FANOVA – Glucose Curves by HbA1c Multi-Group",
        x = "Time of Day", y = "F-statistic") +
   theme_minimal(base_size = 12) +
   theme(plot.title = element_text(hjust = 0.5, face = "bold"),
         panel.border = element_rect(color = "black", fill = NA, linewidth = 0.5))
 
-ggsave("C:/Users/andre/OneDrive/Desktop/FTDA/Plots/16. Fanova2.png", 
+ggsave("C:/Users/andre/OneDrive/Desktop/FTDA/Plots/17. Fanova_Multi.png", 
        width = 10, height = 6, dpi = 300)
 
 # --- CROSS-VALIDATION (10-fold) ON A SUBSAMPLE ---
@@ -943,57 +956,78 @@ cv2_sub <- readRDS("C:/Users/andre/OneDrive/Desktop/FTDA/Objects/cv2_sub.rds")
 cv2_r2 <- 1 - cv2_sub$SSE.CV / sum((HbA1c_z_sub - mean(HbA1c_z_sub))^2)
 cat("Model 2 – CV R² (subset):", round(cv2_r2, 4), "\n")
 
-# --- TOPOLOGICAL DIFFERENCES – HbA1c high vs low ---
+# --- TOPOLOGICAL DIFFERENCES – HbA1c 4 CATEGORIES ---
 
-# Identify curve indices by HbA1c group
-high_idx <- which(metadata_fd$HbA1cTestRes >= 8)
-low_idx  <- which(metadata_fd$HbA1cTestRes < 8)
+# Identify indices for each group
+idx_1 <- which(metadata_fd$HbA1cTestRes <= 6.5)
+idx_2 <- which(metadata_fd$HbA1cTestRes > 6.5 & metadata_fd$HbA1cTestRes <= 7.5)
+idx_3 <- which(metadata_fd$HbA1cTestRes > 7.5 & metadata_fd$HbA1cTestRes <= 8.5)
+idx_4 <- which(metadata_fd$HbA1cTestRes > 8.5)
 
-# Limit to first 100 curves per group (for speed)
-curve_high <- t(glucose_matrix_imputed[, high_idx[1:100]])
-curve_low  <- t(glucose_matrix_imputed[, low_idx[1:100]])
+# Select up to 100 curves per group
+curve_1 <- t(glucose_matrix_imputed[, idx_1[1:min(100, length(idx_1))]])
+curve_2 <- t(glucose_matrix_imputed[, idx_2[1:min(100, length(idx_2))]])
+curve_3 <- t(glucose_matrix_imputed[, idx_3[1:min(100, length(idx_3))]])
+curve_4 <- t(glucose_matrix_imputed[, idx_4[1:min(100, length(idx_4))]])
 
-# Compute persistence diagrams for both groups
-Diag_high <- alphaShapeDiag(curve_high, library = "GUDHI")
-Diag_low  <- alphaShapeDiag(curve_low,  library = "GUDHI")
+# Compute persistence diagrams
+Diag_1 <- alphaShapeDiag(curve_1, library = "GUDHI")
+Diag_2 <- alphaShapeDiag(curve_2, library = "GUDHI")
+Diag_3 <- alphaShapeDiag(curve_3, library = "GUDHI")
+Diag_4 <- alphaShapeDiag(curve_4, library = "GUDHI")
 
-# Save side-by-side persistence diagrams
-png(filename = "C:/Users/andre/OneDrive/Desktop/FTDA/Plots/17. Persistence_Diagrams.png",
-    width = 1200, height = 600, res = 150)
+png(filename = "C:/Users/andre/OneDrive/Desktop/FTDA/Plots/18. Persistence_Diagrams_Multi.png",
+    width = 1800, height = 600, res = 150)
 
-# Set graphical parameters
-# Set consistent graphical parameters
-par(mfrow = c(1,2),
-    mar = c(5, 5, 4, 2),            # margins: bottom, left, top, right
-    cex.main = 1,                 # title size
-    cex.lab = 0.7,                    # axis labels
-    cex.axis = 0.55,                 # axis ticks
-    mgp = c(0.5, 0.5, 0),             # label positioning
-    las = 0.8)                        # horizontal y-axis
+# Set 4 panels
+par(mfrow = c(1, 4),
+    mar = c(5, 5, 4, 2),
+    cex.main = 1,
+    cex.lab = 0.7,
+    cex.axis = 0.55,
+    mgp = c(0.5, 0.5, 0),
+    las = 0.8)
 
-# Plot 1: HbA1c ≥ 8
-plot(Diag_high$diagram,
-     main = "",
-     diagLim = c(0, max(Diag_high$diagram[, 2:3], na.rm = TRUE)),
-     barcode = FALSE)
-axis(1, lwd = 0.5, cex.axis = 0.55)
-box(lwd = 0.5) 
-# Add title closer to plot
-title(main = "Persistence Diagram – HbA1c ≥ 8", line = 1)
+# Function to plot a diagram if present
+plot_if_not_empty <- function(Diag, title_text) {
+  if (!is.null(Diag$diagram) && nrow(Diag$diagram) > 0) {
+    plot(Diag$diagram,
+         main = "",
+         diagLim = c(0, max(Diag$diagram[, 2:3], na.rm = TRUE)),
+         barcode = FALSE)
+    axis(1, lwd = 0.5, cex.axis = 0.55)
+    box(lwd = 0.5)
+    title(main = title_text, line = 1)
+  } else {
+    plot.new()
+    title(main = paste(title_text, "\nNo topological features"), line = -1)
+  }
+}
 
-# Plot 2: HbA1c < 8
-plot(Diag_low$diagram,
-     main = "",
-     diagLim = c(0, max(Diag_low$diagram[, 2:3], na.rm = TRUE)),
-     barcode = FALSE)
-axis(1, lwd = 0.5, cex.axis = 0.55)
-box(lwd = 0.5) 
-# Add title closer to plot
-title(main = "Persistence Diagram – HbA1c < 8", line = 1)
+# Plot for each group
+plot_if_not_empty(Diag_1, "Persistence Diagram – HbA1c ≤ 6.5")
+plot_if_not_empty(Diag_2, "Persistence Diagram – 6.5 < HbA1c ≤ 7.5")
+plot_if_not_empty(Diag_3, "Persistence Diagram – 7.5 < HbA1c ≤ 8.5")
+plot_if_not_empty(Diag_4, "Persistence Diagram – HbA1c > 8.5")
 
-# Close device
 dev.off()
 
-# Bottleneck distance in H₀ (connected components)
-bn_dist <- bottleneck(Diag_high$diagram, Diag_low$diagram, dimension = 0)
-cat("Bottleneck distance (H₀):", bn_dist, "\n")
+# Support function to calculate distance only if both diagrams have features
+compute_bn_dist <- function(DiagA, DiagB, nameA, nameB) {
+  if (nrow(DiagA$diagram) > 0 && nrow(DiagB$diagram) > 0) {
+    dist <- bottleneck(DiagA$diagram, DiagB$diagram, dimension = 0)
+    cat("Bottleneck distance (H₀) between", nameA, "and", nameB, ":", dist, "\n")
+    return(dist)
+  } else {
+    cat("Bottleneck distance (H₀) between", nameA, "and", nameB, ": not computed (one or both empty)\n")
+    return(NA)
+  }
+}
+
+# Calculate the distances between all pairs
+bn_12 <- compute_bn_dist(Diag_1, Diag_2, "HbA1c ≤ 6.5", "6.5 < HbA1c ≤ 7.5")
+bn_13 <- compute_bn_dist(Diag_1, Diag_3, "HbA1c ≤ 6.5", "7.5 < HbA1c ≤ 8.5")
+bn_14 <- compute_bn_dist(Diag_1, Diag_4, "HbA1c ≤ 6.5", "HbA1c > 8.5")
+bn_23 <- compute_bn_dist(Diag_2, Diag_3, "6.5 < HbA1c ≤ 7.5", "7.5 < HbA1c ≤ 8.5")
+bn_24 <- compute_bn_dist(Diag_2, Diag_4, "6.5 < HbA1c ≤ 7.5", "HbA1c > 8.5")
+bn_34 <- compute_bn_dist(Diag_3, Diag_4, "7.5 < HbA1c ≤ 8.5", "HbA1c > 8.5")
