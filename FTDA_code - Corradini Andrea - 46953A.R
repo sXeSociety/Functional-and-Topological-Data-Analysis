@@ -1,3 +1,6 @@
+# The source of the data is Jaeb Center for Health Research (2017). The datasets have been retrieved from http://https://public.jaeb.org/dataset/546. 
+# The analyses content and conclusions presented herein are solely the responsibility of the authors and have not been reviewed or approved by the Jaeb Center for Health Research.
+
 # Load the libraries
 library(readr)
 library(dplyr)
