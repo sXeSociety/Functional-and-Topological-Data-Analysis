@@ -313,7 +313,7 @@ fviz_nbclust(fpca_sample, kmeans, method = "silhouette") +
 ggsave(filename = "C:/Users/andre/OneDrive/Desktop/FTDA/Plots/6. Silhouette.png", 
        plot = last_plot(), width = 10, height = 6, dpi = 300)
 
-# Apply k-means clustering with optimal k (e.g., 4)
+# Apply k-means clustering with optimal k
 k <- 4
 set.seed(123)
 kmeans_result <- kmeans(fpca_scores, centers = k, nstart = 50)
@@ -330,7 +330,7 @@ cluster_sample <- kmeans_result$cluster[sample_idx]
 diss_sample <- dist(scores_sample)
 # Compute silhouette object
 silhouette_obj <- cluster::silhouette(cluster_sample, diss_sample)
-# Define a softer color palette
+# Define a color palette
 custom_colors <- c("#08306B", "#6BAED6", "#FD8D3C", "#BD0026")
 
 # Silhouette plot
@@ -424,7 +424,7 @@ ggsave(filename = "C:/Users/andre/OneDrive/Desktop/FTDA/Plots/9. Curves-Cluster.
 png(filename = "C:/Users/andre/OneDrive/Desktop/FTDA/Plots/10. FunctionalBoxplots.png",
     width = 1200, height = 600, res = 150)
 
-# Set 1 row, 2 columns layout and consistent style
+# Set 1 row, 2 columns layout 
 par(mfrow = c(1, 2),
     mar = c(5, 5, 4, 2),
     oma = c(0, 0, 0, 0),
@@ -464,7 +464,7 @@ dev.off()
 
 # --- DEPTH MEASURES (MBD) ---
 
-# Evaluate smoothed functional data on [0,1] grid (already defined earlier)
+# Evaluate smoothed functional data on [0,1] grid 
 fd_matrix <- t(eval.fd(normalized_time, smoothed_fd))  # rows = curves
 n_curves <- nrow(fd_matrix)
 
@@ -833,7 +833,7 @@ metadata_fd <- metadata_fd %>%
   left_join(scores_clustered %>% dplyr::select(curve_id, cluster), by = "curve_id") %>%
   filter(!is.na(cluster))
 
-# Evaluate smoothed curves on normalized grid (already defined)
+# Evaluate smoothed curves on normalized grid 
 fd_matrix <- eval.fd(normalized_time, fd_regression)
 
 # Create fdata object: rows = curves, columns = time points

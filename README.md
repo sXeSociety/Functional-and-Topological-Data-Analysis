@@ -1,11 +1,13 @@
 # Functional and Topological Data Analysis
 
-This repository contains the full R code, plots, and saved objects for my experimental project on Functional and Topological Data Analysis (FTDA) using Continuous Glucose Monitoring (CGM) data from adults with Type 1 Diabetes.
+This repository contains the full R code, paper, presentation, plots, and saved objects for my experimental project on Functional and Topological Data Analysis (FTDA) using Continuous Glucose Monitoring (CGM) data from adults with Type 1 Diabetes.
 
 ## Contents
-- `FTDA_Analysis.R`: complete pipeline, from preprocessing to regression and topological analysis
+- `FTDA_code - Corradini Andrea - 46953A.R`: complete pipeline, from preprocessing to regression and topological analysis
 - `Plots/`: PNG images of all visual outputs
 - `Objects/`: saved RDS objects (e.g., fitted models, cross-validation results)
+- `Corradini Andrea - Functional and Topological Data Analysis - 46953A.pdf`: the paper
+- `Presentation - Corradini Andrea - 46953A.pdf`: the PowerPoint presentation
 - `README.md`: this project description
 
 ## Main techniques
